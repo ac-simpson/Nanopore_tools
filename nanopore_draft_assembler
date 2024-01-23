@@ -1,0 +1,18 @@
+#!/bin/sh
+RAW_SEQUENCES=$(realpath $1)
+PROJECT=$2
+MEDAKA_MODEL="r941_min_fast_g303"
+
+mkdir $PROJECT
+cd $PROJECT
+
+echo "Beginning script: Step 1, remove barcodes with Porechop"
+porechop -i $RAW_SEQUENCES -t 60 > "temp.fastq"
+echo "Step 2: Filter reads and remove short reads"
+NanoFilt "temp.fastq" -q 10 -l 200  > "${PROJECT}_trimmed_filtered.fastq"
+#rm "temp.fastq"
+echo "Step 3: Assembly with Flye"
+flye --nano-raw "${PROJECT}_trimmed_filtered.fastq" -o "${PROJECT}_flye_assembly" -t 60 --scaffold  -i 1
+echo "Step 5: Polishing with medaka"
+medaka_consensus -i $RAW_SEQUENCES -d "${PROJECT}_flye_assembly/assembly.fasta" -o "${PROJECT}_medaka" -t 60 -m $MEDAKA_MODEL
+echo "DONE"
